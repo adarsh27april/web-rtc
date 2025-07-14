@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	// this hub renotes a room where lients will be added and removed by using go routines and the.
+	// this hub renotes a room where lients will be added and removed by using go routines.
 	h := hub.NewHub() // this will create 3 new channels for register, unregister, broadcast
 	go h.Run()        // this is going to run concurrently and listen to all the data made available in that channel
 

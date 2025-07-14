@@ -2,6 +2,7 @@ package hub
 
 import (
 	"signaling-server-webrtc/client"
+	"signaling-server-webrtc/utils"
 	"sync"
 )
 
@@ -37,12 +38,13 @@ func (h *Hub) Run() {
 }
 
 func (h *Hub) addClient(c *client.Client) {
-	h.mu.Lock() // this will make a write lock on h.mu value to make a write on the HUB struct
+	h.mu.Lock() // this will make a write lock on h.mu value to make a write on the HUB rooms map
 	defer h.mu.Unlock()
 	if h.rooms[c.RoomID] == nil {
 		h.rooms[c.RoomID] = make(map[*client.Client]bool)
 	}
 	h.rooms[c.RoomID][c] = true
+	utils.LogRoom(c.RoomID, c.ClientID, "✅ Joined room")
 }
 
 func (h *Hub) removeClient(c *client.Client) {
@@ -52,6 +54,7 @@ func (h *Hub) removeClient(c *client.Client) {
 		delete(h.rooms[c.RoomID], c)
 		close(c.Send)
 	}
+	utils.LogRoom(c.RoomID, c.ClientID, "❌ Left room")
 }
 
 func (h *Hub) sendToRoom(msg client.MessageEnvelope) {
@@ -62,6 +65,7 @@ func (h *Hub) sendToRoom(msg client.MessageEnvelope) {
 			c.Send <- msg.Data
 		}
 	}
+	utils.LogRoom(msg.RoomID, msg.Sender.ClientID, "📡 Relaying message to other clients in room")
 }
 
 func (h *Hub) Register(c *client.Client) {
