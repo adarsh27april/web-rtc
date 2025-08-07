@@ -10,10 +10,12 @@ A minimal WebRTC signaling server (Go) for secure peer-to-peer (P2P) communicati
 ```
 signaling-server-webrtc/
   main.go
-  handler.go
+  handlers/handleRoom.go
   srv/room.go
   utils/utils.go
   utils/http.go
+  utils/logger.go
+  pkg/hub/hub.go
   pkg/types/client.go
   pkg/types/room.go
   pkg/types/hub.go
@@ -129,37 +131,46 @@ The frontend is a manual WebRTC test app. Two users open the app (in different t
 ### main.go
 ```go
 package main
+
 import (
-    "log"
-    "net/http"
-    "signaling-server-webrtc/client"
-    "signaling-server-webrtc/hub"
+   "log"
+   "net/http"
+
+   "github.com/gorilla/mux"
+
+   "signaling-server-webrtc/handlers"
+   "signaling-server-webrtc/pkg/types"
 )
+
 func main() {
-    h := hub.NewHub()
-    go h.Run()
-    http.HandleFunc("/api/health", HandlerHealthCheck("Signaling Server"))
-    http.HandleFunc("/api/rooms/join", HandlerJoinRoom)
-    http.HandleFunc("/api/rooms/leave", HandleLeaveRoom)
-    http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-        client.ServeWs(h, w, r)
-    })
-    log.Println("Signaling server started on :4040")
-    log.Fatal(http.ListenAndServe(":4040", nil))
+
+   h := types.NewHub()
+
+   r := mux.NewRouter()
+
+   r.HandleFunc("/api/health", handlers.HandlerHealthCheck("Signaling Server")).Methods("GET")
+   r.HandleFunc("/api/rooms/join", handlers.HandlerJoinRoom(h)).Methods("POST")
+   r.HandleFunc("/api/rooms/leave", handlers.HandleLeaveRoom(h)).Methods("POST")
+   r.HandleFunc("/api/rooms/stats", handlers.HandleRoomStats(h)).Methods("GET")
+
+
+   log.Println("Signaling server started on :1337")
+   log.Fatal(http.ListenAndServe(":1337", r))
 }
 ```
 
-### handler.go
+### handlers/handleRoom.go
 ```go
-package main
+package handlers
 
 import (
    "encoding/json"
    "net/http"
+   "time"
+
    "signaling-server-webrtc/pkg/types"
    "signaling-server-webrtc/srv"
    "signaling-server-webrtc/utils"
-   "time"
 )
 
 func HandlerHealthCheck(serviceName string) http.HandlerFunc {
@@ -190,11 +201,13 @@ func HandlerJoinRoom(hub *types.Hub) http.HandlerFunc {
       room := srv.JoinRoom(hub, &joinRoom, client)
       // client will be added to a new room or to room.RoomId
 
+      client.RoomID = *room.RoomId
+
       utils.WriteJSON(w, http.StatusOK, room)
    }
 }
 
-func HandleLeaveRoom(hub *types.Hub, client *types.Client) http.HandlerFunc {
+func HandleLeaveRoom(hub *types.Hub) http.HandlerFunc {
    return func(w http.ResponseWriter, r *http.Request) {
       room, err := utils.DecodeRoomRequest(r)
       if err != nil {
@@ -208,6 +221,12 @@ func HandleLeaveRoom(hub *types.Hub, client *types.Client) http.HandlerFunc {
          return
       }
 
+      client := hub.GetClientFromRoom(*room.RoomId, *room.ClientID)
+      if client == nil {
+         utils.WriteError(w, http.StatusNotFound, "Client not found in room")
+         return
+      }
+
       leftRoom, err := srv.LeaveRoom(hub, room, client)
       if err != nil {
          http.Error(w, "Some Error Occured", http.StatusInternalServerError)
@@ -215,6 +234,17 @@ func HandleLeaveRoom(hub *types.Hub, client *types.Client) http.HandlerFunc {
       }
 
       utils.WriteJSON(w, http.StatusOK, leftRoom)
+   }
+}
+
+func HandleRoomStats(hub *types.Hub) http.HandlerFunc {
+   return func(w http.ResponseWriter, r *http.Request) {
+      roomId := r.URL.Query().Get("roomId")
+      if roomId == "" {
+         utils.WriteJSON(w, http.StatusOK, srv.HubStats(hub))
+         return
+      }
+      utils.WriteJSON(w, http.StatusOK, srv.RoomStats(hub, roomId))
    }
 }
 ```
@@ -225,30 +255,27 @@ package srv
 
 import (
    "fmt"
+
    "signaling-server-webrtc/pkg/types"
    "signaling-server-webrtc/utils"
 )
-
 func JoinRoom(hub *types.Hub, room *types.Room, client *types.Client) types.Room {
-   // Logic to handle joining a room
    hub.Mu.Lock()
    defer hub.Mu.Unlock()
 
-   // if no room from client then create new room for it.
    if room.RoomId == nil {
       room.RoomId = utils.Ptr(utils.GenerateShortID())
    }
 
-   // create room it it not exists
    if _, ok := hub.Rooms[*room.RoomId]; !ok {
       hub.Rooms[*room.RoomId] = make(map[*types.Client]bool)
    }
 
-   // set roomId for client
    client.RoomID = *room.RoomId
 
-   // add client to room
    hub.Rooms[*room.RoomId][client] = true
+
+   utils.LogRoom(*room.RoomId, client.ClientID, "Client joined room")
 
    return types.Room{
       RoomId:   room.RoomId,
@@ -256,9 +283,9 @@ func JoinRoom(hub *types.Hub, room *types.Room, client *types.Client) types.Room
       Status:   utils.Ptr("joined"),
    }
 }
-
 func LeaveRoom(hub *types.Hub, room types.Room, client *types.Client) (types.Room, error) {
-   // Logic to handle leaving a room
+   hub.Mu.Lock()
+   defer hub.Mu.Unlock()
 
    res := types.Room{
       RoomId:   room.RoomId,
@@ -266,24 +293,55 @@ func LeaveRoom(hub *types.Hub, room types.Room, client *types.Client) (types.Roo
       Status:   utils.Ptr("left"),
    }
 
-   hub.Mu.Lock()
-   defer hub.Mu.Unlock()
-
-   clients, ok := hub.Rooms[*room.RoomId] // check if room id exist or not in hub
+   clients, ok := hub.Rooms[*room.RoomId]
    if !ok {
       return types.Room{}, fmt.Errorf("room with ID %s does not exist", *room.RoomId)
    }
-   if _, exists := clients[client]; !exists { // check if client exist or not in room
+   if _, exists := clients[client]; !exists {
       return types.Room{}, fmt.Errorf("client %s not found in room %s", client.ClientID, *room.RoomId)
    }
 
-   delete(clients, client) // delete client from room
+   delete(clients, client)
 
-   if len(clients) == 0 { // clean empty room
+   utils.LogRoom(*room.RoomId, client.ClientID, "Client left room")
+
+   if len(clients) == 0 {
       delete(hub.Rooms, *room.RoomId)
+      utils.LogRoom(*room.RoomId, client.ClientID, "Room is empty. Deleted.")
    }
 
    return res, nil
+}
+
+func HubStats(hub *types.Hub) types.HubStats {
+   stats := types.HubStats{}
+   for roomID, clients := range hub.Rooms {
+      clientList := []string{}
+      for client := range clients {
+         clientList = append(clientList, client.ClientID)
+      }
+
+      stats.Rooms = append(stats.Rooms, types.RoomStats{
+         RoomID:  roomID,
+         Clients: clientList,
+      })
+   }
+
+   return stats
+}
+
+func RoomStats(hub *types.Hub, roomId string) types.RoomStats {
+   stats := types.RoomStats{}
+   for rId, clients := range hub.Rooms {
+      if rId == roomId {
+         stats.RoomID = rId
+         for client := range clients {
+            stats.Clients = append(stats.Clients, client.ClientID)
+         }
+         break
+      }
+   }
+   return stats
 }
 ```
 
@@ -355,8 +413,8 @@ package types
 import "github.com/gorilla/websocket"
 
 type Client struct {
-   Connection *websocket.Conn // this is a websocket connection
-   Send       chan []byte     // this is a channel to send messages to the client
+   Connection *websocket.Conn 
+   Send       chan []byte
    RoomID     string
    Hub        Hub
    ClientID   string
@@ -369,23 +427,52 @@ type MessageEnvelope struct {
 }
 ```
 
+### signaling-server/utils/logger.go
+```go
+package utils
+
+import (
+   "fmt"
+   "log"
+)
+
+func LogRoom(roomID, clientID, message string, args ...any) {
+   logPrefix := fmt.Sprintf("[Room:%s] [Client:%s] ", roomID, clientID)
+   log.Printf(logPrefix+message, args...)
+}
+```
+
 ### pkg/types/room.go
 ```go
 package types
+
 import "fmt"
+
 type Room struct {
-    RoomId   *string `json:"room_id,omitempty"`
-    ClientID *string `json:"client_id,omitempty"`
-    Status   *string `json:"status,omitempty" validate:"oneof=joined left"`
+   RoomId   *string `json:"roomId,omitempty"`
+   ClientID *string `json:"clientId,omitempty"`
+   Status   *string `json:"status,omitempty" validate:"oneof=joined left"`
 }
+
+// it ensure room and client are non empty
 func (r *Room) ValidateLeaveRoom() error {
-    if r.RoomId == nil || *r.RoomId == "" {
-        return fmt.Errorf("room_id is required")
-    }
-    if r.ClientID == nil || *r.ClientID == "" {
-        return fmt.Errorf("client_id is required")
-    }
-    return nil
+   if r.RoomId == nil || *r.RoomId == "" {
+      return fmt.Errorf("room_id is required")
+   }
+   if r.ClientID == nil || *r.ClientID == "" {
+      return fmt.Errorf("client_id is required")
+   }
+   return nil
+}
+
+type RoomStats struct {
+   RoomID  string   `json:"roomId"`
+   Clients []string `json:"clients"`
+}
+
+type HubStats struct {
+   TotalRooms int         `json:"totalRooms"`
+   Rooms      []RoomStats `json:"rooms"`
 }
 ```
 
@@ -413,6 +500,7 @@ func NewHub() *Hub {
       Broadcast:  make(chan MessageEnvelope),
    }
 }
+
 
 func (h *Hub) GetClientFromRoom(roomID, clientID string) *Client {
    h.Mu.RLock()

@@ -3,10 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"time"
+
 	"signaling-server-webrtc/pkg/types"
 	"signaling-server-webrtc/srv"
 	"signaling-server-webrtc/utils"
-	"time"
 )
 
 func HandlerHealthCheck(serviceName string) http.HandlerFunc {

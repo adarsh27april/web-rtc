@@ -4,15 +4,10 @@ import (
 	"log"
 	"net/http"
 
-	// "signaling-server-webrtc/client"
-	// "signaling-server-webrtc/hub"
+	"github.com/gorilla/mux"
 
 	"signaling-server-webrtc/handlers"
 	"signaling-server-webrtc/pkg/types"
-
-	"github.com/gorilla/mux"
-	// "signaling-server-webrtc/handlers"
-	// "signaling-server-webrtc/hub"
 )
 
 func main() {
@@ -27,14 +22,6 @@ func main() {
 	r.HandleFunc("/api/rooms/join", handlers.HandlerJoinRoom(h)).Methods("POST")
 	r.HandleFunc("/api/rooms/leave", handlers.HandleLeaveRoom(h)).Methods("POST")
 	r.HandleFunc("/api/rooms/stats", handlers.HandleRoomStats(h)).Methods("GET")
-
-	// http.HandleFunc("/api/health", handlers.HandlerHealthCheck("Signaling Server"))
-
-	// http.HandleFunc("/api/rooms/join", handlers.HandlerJoinRoom(h))
-
-	// http.HandleFunc("/api/rooms/leave", handlers.HandleLeaveRoom(h))
-
-	// http.HandleFunc("api/rooms/stats", handlers.HandleRoomStats(h))
 
 	// http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 	// 	client.ServeWs(h, w, r)
