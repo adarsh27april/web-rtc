@@ -1,37 +1,48 @@
-package types
+package pkg
 
 import (
+	"signaling-server-webrtc/pkg/types"
 	"sync"
 )
 
 /*
-Hub.Rooms is like
+Hub is Central Event Manager. Responsible for:
+
+  - Managing active rooms and clients
+
+  - Relaying messages between clients
+
+  - Cleaning up connections
+
+  - Acts as Message router. Communicates with the system through go channels
+
+Hub.Rooms is like:
 
 	"roomId": {
-		"client1_ptr": true    // all clients of a room are in map
-		"client2_ptr": true    // instead of array for easy/fast access
+		"client1_ptr": true // all clients of a room are in map
+		"client2_ptr": true // for fast/ease access
 		"client3_ptr": true
 	}
 */
 type Hub struct {
-	Rooms      map[string]map[*Client]bool
-	Register   chan *Client
-	Unregister chan *Client
-	Broadcast  chan MessageEnvelope
+	Rooms      map[string]map[*types.Client]bool
+	Register   chan *types.Client
+	Unregister chan *types.Client
+	Broadcast  chan types.MessageEnvelope
 	Mu         sync.RWMutex
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		Rooms:      make(map[string]map[*Client]bool),
-		Register:   make(chan *Client),
-		Unregister: make(chan *Client),
-		Broadcast:  make(chan MessageEnvelope),
+		Rooms:      make(map[string]map[*types.Client]bool),
+		Register:   make(chan *types.Client),
+		Unregister: make(chan *types.Client),
+		Broadcast:  make(chan types.MessageEnvelope),
 	}
 }
 
 // it will traverse the Hub to get client ptr from clientId if it is present in roomId
-func (h *Hub) GetClientFromRoom(roomID, clientID string) *Client {
+func (h *Hub) GetClientFromRoom(roomID, clientID string) *types.Client {
 	h.Mu.RLock()
 	defer h.Mu.RUnlock()
 	for c := range h.Rooms[roomID] {

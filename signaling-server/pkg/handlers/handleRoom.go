@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	pkg "signaling-server-webrtc/pkg"
 	"signaling-server-webrtc/pkg/types"
 	"signaling-server-webrtc/srv"
 	"signaling-server-webrtc/utils"
@@ -22,7 +23,7 @@ func HandlerHealthCheck(serviceName string) http.HandlerFunc {
 	}
 }
 
-func HandlerJoinRoom(hub *types.Hub) http.HandlerFunc {
+func HandlerJoinRoom(hub *pkg.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		joinRoom, err := utils.DecodeRoomRequest(r)
 		if err != nil {
@@ -44,7 +45,7 @@ func HandlerJoinRoom(hub *types.Hub) http.HandlerFunc {
 	}
 }
 
-func HandleLeaveRoom(hub *types.Hub) http.HandlerFunc {
+func HandleLeaveRoom(hub *pkg.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		room, err := utils.DecodeRoomRequest(r)
 		if err != nil {
@@ -74,7 +75,7 @@ func HandleLeaveRoom(hub *types.Hub) http.HandlerFunc {
 	}
 }
 
-func HandleRoomStats(hub *types.Hub) http.HandlerFunc {
+func HandleRoomStats(hub *pkg.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		roomId := r.URL.Query().Get("roomId")
 		if roomId == "" {

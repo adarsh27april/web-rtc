@@ -3,12 +3,13 @@ package srv
 import (
 	"fmt"
 
+	pkg "signaling-server-webrtc/pkg"
 	"signaling-server-webrtc/pkg/types"
 	"signaling-server-webrtc/utils"
 )
 
 // Logic to handle joining a room
-func JoinRoom(hub *types.Hub, room *types.Room, client *types.Client) types.Room {
+func JoinRoom(hub *pkg.Hub, room *types.Room, client *types.Client) types.Room {
 	hub.Mu.Lock()
 	defer hub.Mu.Unlock()
 
@@ -38,7 +39,7 @@ func JoinRoom(hub *types.Hub, room *types.Room, client *types.Client) types.Room
 }
 
 // Logic to handle leaving a room
-func LeaveRoom(hub *types.Hub, room types.Room, client *types.Client) (types.Room, error) {
+func LeaveRoom(hub *pkg.Hub, room types.Room, client *types.Client) (types.Room, error) {
 	hub.Mu.Lock()
 	defer hub.Mu.Unlock()
 
@@ -68,7 +69,7 @@ func LeaveRoom(hub *types.Hub, room types.Room, client *types.Client) (types.Roo
 	return res, nil
 }
 
-func HubStats(hub *types.Hub) types.HubStats {
+func HubStats(hub *pkg.Hub) types.HubStats {
 	stats := types.HubStats{}
 	for roomID, clients := range hub.Rooms {
 		clientList := []string{}
@@ -85,7 +86,7 @@ func HubStats(hub *types.Hub) types.HubStats {
 	return stats
 }
 
-func RoomStats(hub *types.Hub, roomId string) types.RoomStats {
+func RoomStats(hub *pkg.Hub, roomId string) types.RoomStats {
 	stats := types.RoomStats{}
 	for rId, clients := range hub.Rooms {
 		if rId == roomId {
