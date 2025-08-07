@@ -68,14 +68,14 @@ func (h *Hub) sendToRoom(msg client.MessageEnvelope) {
 	utils.LogRoom(msg.RoomID, msg.Sender.ClientID, "📡 Relaying message to other clients in room")
 }
 
-func (h *Hub) Register(c *client.Client) {
+func (h *Hub) RegisterClient(c *client.Client) {
 	h.register <- c
 }
 
-func (h *Hub) Unregister(c *client.Client) {
+func (h *Hub) UnregisterClient(c *client.Client) {
 	h.unregister <- c
 }
 
-func (h *Hub) Broadcast(msg client.MessageEnvelope) {
+func (h *Hub) BroadcastToClient(msg client.MessageEnvelope) {
 	h.broadcast <- msg
 }
