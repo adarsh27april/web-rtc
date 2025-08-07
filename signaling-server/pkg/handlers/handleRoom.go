@@ -6,12 +6,11 @@ import (
 	"time"
 
 	pkg "signaling-server-webrtc/pkg"
-	"signaling-server-webrtc/pkg/types"
 	"signaling-server-webrtc/srv"
 	"signaling-server-webrtc/utils"
 )
 
-func HandlerHealthCheck(serviceName string) http.HandlerFunc {
+func HandleHealthCheck(serviceName string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		resp := map[string]string{
 			"serviceName": serviceName,
@@ -23,7 +22,7 @@ func HandlerHealthCheck(serviceName string) http.HandlerFunc {
 	}
 }
 
-func HandlerJoinRoom(hub *pkg.Hub) http.HandlerFunc {
+func HandleJoinRoom(hub *pkg.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		joinRoom, err := utils.DecodeRoomRequest(r)
 		if err != nil {
@@ -32,7 +31,7 @@ func HandlerJoinRoom(hub *pkg.Hub) http.HandlerFunc {
 		}
 
 		// creating random client id and adding it to the room
-		client := &types.Client{
+		client := &pkg.Client{
 			ClientID: utils.GenerateShortID(), // or UUID
 		}
 

@@ -9,7 +9,7 @@ import (
 )
 
 // Logic to handle joining a room
-func JoinRoom(hub *pkg.Hub, room *types.Room, client *types.Client) types.Room {
+func JoinRoom(hub *pkg.Hub, room *types.Room, client *pkg.Client) types.Room {
 	hub.Mu.Lock()
 	defer hub.Mu.Unlock()
 
@@ -20,14 +20,19 @@ func JoinRoom(hub *pkg.Hub, room *types.Room, client *types.Client) types.Room {
 
 	// create room it it not exists
 	if _, ok := hub.Rooms[*room.RoomId]; !ok {
-		hub.Rooms[*room.RoomId] = make(map[*types.Client]bool)
+		hub.Rooms[*room.RoomId] = make(map[*pkg.Client]bool)
 	}
 
 	// set roomId for client
 	client.RoomID = *room.RoomId
 
+	/*
+		We will not add the client in room here just return a newly created {roomId, clientId}.
+		It will be added in the websocket connection
+	*/
+
 	// add client to room. a single room is `hub.Rooms[*room.RoomId]`
-	hub.Rooms[*room.RoomId][client] = true
+	// hub.Rooms[*room.RoomId][client] = true
 
 	utils.LogRoom(*room.RoomId, client.ClientID, "Client joined room")
 
@@ -38,8 +43,11 @@ func JoinRoom(hub *pkg.Hub, room *types.Room, client *types.Client) types.Room {
 	}
 }
 
+/*
+This will be deleted. The leave room will be called in websocket connection only.
+*/
 // Logic to handle leaving a room
-func LeaveRoom(hub *pkg.Hub, room types.Room, client *types.Client) (types.Room, error) {
+func LeaveRoom(hub *pkg.Hub, room types.Room, client *pkg.Client) (types.Room, error) {
 	hub.Mu.Lock()
 	defer hub.Mu.Unlock()
 
