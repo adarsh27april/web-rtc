@@ -44,7 +44,7 @@ func (h *Hub) addClient(c *client.Client) {
 		h.rooms[c.RoomID] = make(map[*client.Client]bool)
 	}
 	h.rooms[c.RoomID][c] = true
-	utils.LogRoom(c.RoomID, c.ClientID, "✅ Joined room")
+	utils.LogRoom(c.RoomID, c.ClientId, "✅ Joined room")
 }
 
 func (h *Hub) removeClient(c *client.Client) {
@@ -54,7 +54,7 @@ func (h *Hub) removeClient(c *client.Client) {
 		delete(h.rooms[c.RoomID], c)
 		close(c.Send)
 	}
-	utils.LogRoom(c.RoomID, c.ClientID, "❌ Left room")
+	utils.LogRoom(c.RoomID, c.ClientId, "❌ Left room")
 }
 
 func (h *Hub) sendToRoom(msg client.MessageEnvelope) {
@@ -65,7 +65,7 @@ func (h *Hub) sendToRoom(msg client.MessageEnvelope) {
 			c.Send <- msg.Data
 		}
 	}
-	utils.LogRoom(msg.RoomID, msg.Sender.ClientID, "📡 Relaying message to other clients in room")
+	utils.LogRoom(msg.RoomID, msg.Sender.ClientId, "📡 Relaying message to other clients in room")
 }
 
 func (h *Hub) RegisterClient(c *client.Client) {

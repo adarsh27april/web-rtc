@@ -5,7 +5,7 @@ import (
 	"log"
 )
 
-func LogRoom(roomID, clientID, message string, args ...any) {
-	logPrefix := fmt.Sprintf("[Room:%s] [Client:%s] ", roomID, clientID)
+func LogRoom(roomID, ClientId, message string, args ...any) {
+	logPrefix := fmt.Sprintf("[Room:%s] [Client:%s] ", roomID, ClientId)
 	log.Printf(logPrefix+message, args...)
 }

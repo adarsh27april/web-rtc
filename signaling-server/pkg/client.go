@@ -9,7 +9,7 @@ type Client struct {
 	Send       chan []byte     // this is a channel to send messages to the client
 	RoomID     string
 	// Hub        hub.Hub
-	ClientID string
+	ClientId string
 }
 
 type MessageEnvelope struct {

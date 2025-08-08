@@ -4,8 +4,8 @@ import "fmt"
 
 type Room struct {
 	RoomId   *string `json:"roomId,omitempty"`
-	ClientID *string `json:"clientId,omitempty"`
-	Status   *string `json:"status,omitempty" validate:"oneof=joined left"`
+	ClientId *string `json:"ClientId,omitempty"`
+	Status   *string `json:"status,omitempty" validate:"oneof=joined left created"`
 }
 
 // it ensure room and client are non empty
@@ -13,7 +13,7 @@ func (r *Room) ValidateLeaveRoom() error {
 	if r.RoomId == nil || *r.RoomId == "" {
 		return fmt.Errorf("room_id is required")
 	}
-	if r.ClientID == nil || *r.ClientID == "" {
+	if r.ClientId == nil || *r.ClientId == "" {
 		return fmt.Errorf("client_id is required")
 	}
 	return nil

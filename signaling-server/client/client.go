@@ -22,7 +22,7 @@ type Client struct {
 	Send       chan []byte     // this is a channel to send messages to the client
 	RoomID     string
 	Hub        Hub
-	ClientID   string
+	ClientId   string
 }
 
 type MessageEnvelope struct {
@@ -56,7 +56,7 @@ func ServeWs(h Hub, w http.ResponseWriter, r *http.Request) {
 		Send:       make(chan []byte, 256),
 		RoomID:     join.RoomID,
 		Hub:        h,
-		ClientID:   uuid.New().String(),
+		ClientId:   uuid.New().String(),
 	}
 
 	h.Register(c)
@@ -67,7 +67,7 @@ func ServeWs(h Hub, w http.ResponseWriter, r *http.Request) {
 
 func (c *Client) readPump() {
 	defer func() {
-		utils.LogRoom(c.RoomID, c.ClientID, "🔌 Disconnected")
+		utils.LogRoom(c.RoomID, c.ClientId, "🔌 Disconnected")
 		c.Hub.Unregister(c)
 		c.Connection.Close()
 	}()
@@ -77,20 +77,20 @@ func (c *Client) readPump() {
 		if err != nil {
 			break
 		}
-		utils.LogRoom(c.RoomID, c.ClientID, "📥 Received message from client")
+		utils.LogRoom(c.RoomID, c.ClientId, "📥 Received message from client")
 
 		c.Hub.Broadcast(MessageEnvelope{
 			Sender: c,
 			RoomID: c.RoomID,
 			Data:   message,
 		})
-		utils.LogRoom(c.RoomID, c.ClientID, "Broadcasting message to other clients")
+		utils.LogRoom(c.RoomID, c.ClientId, "Broadcasting message to other clients")
 	}
 }
 
 func (c *Client) writePump() {
 	for msg := range c.Send {
-		utils.LogRoom(c.RoomID, c.ClientID, "📤 Sending message to client")
+		utils.LogRoom(c.RoomID, c.ClientId, "📤 Sending message to client")
 		c.Connection.WriteMessage(websocket.TextMessage, msg)
 	}
 }

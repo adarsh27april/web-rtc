@@ -195,7 +195,7 @@ func HandlerJoinRoom(hub *types.Hub) http.HandlerFunc {
 
       // creating random client id and adding it to the room
       client := &types.Client{
-         ClientID: utils.GenerateShortID(), // or UUID
+         ClientId: utils.GenerateShortID(), // or UUID
       }
 
       room := srv.JoinRoom(hub, &joinRoom, client)
@@ -221,7 +221,7 @@ func HandleLeaveRoom(hub *types.Hub) http.HandlerFunc {
          return
       }
 
-      client := hub.GetClientFromRoom(*room.RoomId, *room.ClientID)
+      client := hub.GetClientFromRoom(*room.RoomId, *room.ClientId)
       if client == nil {
          utils.WriteError(w, http.StatusNotFound, "Client not found in room")
          return
@@ -275,11 +275,11 @@ func JoinRoom(hub *types.Hub, room *types.Room, client *types.Client) types.Room
 
    hub.Rooms[*room.RoomId][client] = true
 
-   utils.LogRoom(*room.RoomId, client.ClientID, "Client joined room")
+   utils.LogRoom(*room.RoomId, client.ClientId, "Client joined room")
 
    return types.Room{
       RoomId:   room.RoomId,
-      ClientID: &client.ClientID,
+      ClientId: &client.ClientId,
       Status:   utils.Ptr("joined"),
    }
 }
@@ -289,7 +289,7 @@ func LeaveRoom(hub *types.Hub, room types.Room, client *types.Client) (types.Roo
 
    res := types.Room{
       RoomId:   room.RoomId,
-      ClientID: &client.ClientID,
+      ClientId: &client.ClientId,
       Status:   utils.Ptr("left"),
    }
 
@@ -298,16 +298,16 @@ func LeaveRoom(hub *types.Hub, room types.Room, client *types.Client) (types.Roo
       return types.Room{}, fmt.Errorf("room with ID %s does not exist", *room.RoomId)
    }
    if _, exists := clients[client]; !exists {
-      return types.Room{}, fmt.Errorf("client %s not found in room %s", client.ClientID, *room.RoomId)
+      return types.Room{}, fmt.Errorf("client %s not found in room %s", client.ClientId, *room.RoomId)
    }
 
    delete(clients, client)
 
-   utils.LogRoom(*room.RoomId, client.ClientID, "Client left room")
+   utils.LogRoom(*room.RoomId, client.ClientId, "Client left room")
 
    if len(clients) == 0 {
       delete(hub.Rooms, *room.RoomId)
-      utils.LogRoom(*room.RoomId, client.ClientID, "Room is empty. Deleted.")
+      utils.LogRoom(*room.RoomId, client.ClientId, "Room is empty. Deleted.")
    }
 
    return res, nil
@@ -318,7 +318,7 @@ func HubStats(hub *types.Hub) types.HubStats {
    for roomID, clients := range hub.Rooms {
       clientList := []string{}
       for client := range clients {
-         clientList = append(clientList, client.ClientID)
+         clientList = append(clientList, client.ClientId)
       }
 
       stats.Rooms = append(stats.Rooms, types.RoomStats{
@@ -336,7 +336,7 @@ func RoomStats(hub *types.Hub, roomId string) types.RoomStats {
       if rId == roomId {
          stats.RoomID = rId
          for client := range clients {
-            stats.Clients = append(stats.Clients, client.ClientID)
+            stats.Clients = append(stats.Clients, client.ClientId)
          }
          break
       }
@@ -417,7 +417,7 @@ type Client struct {
    Send       chan []byte
    RoomID     string
    Hub        Hub
-   ClientID   string
+   ClientId   string
 }
 
 type MessageEnvelope struct {
@@ -436,8 +436,8 @@ import (
    "log"
 )
 
-func LogRoom(roomID, clientID, message string, args ...any) {
-   logPrefix := fmt.Sprintf("[Room:%s] [Client:%s] ", roomID, clientID)
+func LogRoom(roomID, ClientId, message string, args ...any) {
+   logPrefix := fmt.Sprintf("[Room:%s] [Client:%s] ", roomID, ClientId)
    log.Printf(logPrefix+message, args...)
 }
 ```
@@ -450,7 +450,7 @@ import "fmt"
 
 type Room struct {
    RoomId   *string `json:"roomId,omitempty"`
-   ClientID *string `json:"clientId,omitempty"`
+   ClientId *string `json:"ClientId,omitempty"`
    Status   *string `json:"status,omitempty" validate:"oneof=joined left"`
 }
 
@@ -459,7 +459,7 @@ func (r *Room) ValidateLeaveRoom() error {
    if r.RoomId == nil || *r.RoomId == "" {
       return fmt.Errorf("room_id is required")
    }
-   if r.ClientID == nil || *r.ClientID == "" {
+   if r.ClientId == nil || *r.ClientId == "" {
       return fmt.Errorf("client_id is required")
    }
    return nil
@@ -502,11 +502,11 @@ func NewHub() *Hub {
 }
 
 
-func (h *Hub) GetClientFromRoom(roomID, clientID string) *Client {
+func (h *Hub) GetClientFromRoom(roomID, ClientId string) *Client {
    h.Mu.RLock()
    defer h.Mu.RUnlock()
    for c := range h.Rooms[roomID] {
-      if c.ClientID == clientID {
+      if c.ClientId == ClientId {
          return c
       }
    }

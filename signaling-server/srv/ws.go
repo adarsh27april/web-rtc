@@ -16,11 +16,19 @@ var upgrader = websocket.Upgrader{
 
 func ServeWS(hub *pkg.Hub, w http.ResponseWriter, r *http.Request) {
 	roomID := r.URL.Query().Get("roomId")
-	clientID := r.URL.Query().Get("clientId")
+	clientId := r.URL.Query().Get("clientId")
 
-	if roomID == "" || clientID == "" {
+	if roomID == "" || clientId == "" {
 		http.Error(w, "Missing roomId or clientId", http.StatusBadRequest)
 		return
+	}
+
+	hub.Mu.RLock()
+	_, exist := hub.Rooms[roomID][clientId]
+	hub.Mu.RUnlock()
+
+	if !exist {
+		http.Error(w, "Unauthorized Client", http.StatusBadRequest)
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -31,7 +39,7 @@ func ServeWS(hub *pkg.Hub, w http.ResponseWriter, r *http.Request) {
 
 	client := &pkg.Client{
 		Connection: conn,
-		ClientID:   clientID,
+		ClientId:   clientId,
 		RoomID:     roomID,
 		Send:       make(chan []byte, 256),
 	}

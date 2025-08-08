@@ -8,8 +8,8 @@ sequenceDiagram
 
   Note over PeerA, PeerB: Both peers connect to the server via WebSocket<br>and join the same room (e.g., roomId: "alpha123")
 
-  PeerA->>WS: CONNECT /ws?roomId=alpha123&clientId=peerA
-  PeerB->>WS: CONNECT /ws?roomId=alpha123&clientId=peerB
+  PeerA->>WS: CONNECT /ws?roomId=alpha123&ClientId=peerA
+  PeerB->>WS: CONNECT /ws?roomId=alpha123&ClientId=peerB
 
   Note over PeerA: Peer A creates WebRTC offer
 
@@ -49,7 +49,7 @@ Flowchart: Room Logic vs. Hub Channel Lifecycle
           |                        hub.Rooms[roomId]    
           |                          Add *Client stub
           |                              |
-          |        return roomId + clientId
+          |        return roomId + ClientId
           |<-----------------------------|
           |                              |
           |                              |

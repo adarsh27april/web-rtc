@@ -22,57 +22,59 @@ func HandleHealthCheck(serviceName string) http.HandlerFunc {
 	}
 }
 
-func HandleJoinRoom(hub *pkg.Hub) http.HandlerFunc {
+func HandleCreateRoom(hub *pkg.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		joinRoom, err := utils.DecodeRoomRequest(r)
-		if err != nil {
-			utils.WriteError(w, http.StatusBadRequest, "Invalid payload")
-			return
-		}
-
-		// creating random client id and adding it to the room
-		client := &pkg.Client{
-			ClientID: utils.GenerateShortID(), // or UUID
-		}
-
-		room := srv.JoinRoom(hub, &joinRoom, client)
-		// client will be added to a new room or to room.RoomId
-
-		client.RoomID = *room.RoomId
+		room, _ := srv.CreateRoom(hub)
 
 		utils.WriteJSON(w, http.StatusOK, room)
 	}
 }
 
-func HandleLeaveRoom(hub *pkg.Hub) http.HandlerFunc {
+func HandleJoinRoom(hub *pkg.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		room, err := utils.DecodeRoomRequest(r)
+		roomId := r.URL.Query().Get("roomId")
+
+		if roomId == "" {
+			utils.WriteError(w, http.StatusBadRequest, "invalid room id!")
+		}
+		room, err := srv.JoinRoom(hub, roomId)
 		if err != nil {
-			utils.WriteError(w, http.StatusBadRequest, "Invalid payload")
-			return
+			utils.WriteError(w, http.StatusBadRequest, err.Error())
 		}
 
-		err = room.ValidateLeaveRoom()
-		if err != nil {
-			http.Error(w, "Invalid request payload", http.StatusBadRequest)
-			return
-		}
-
-		client := hub.GetClientFromRoom(*room.RoomId, *room.ClientID)
-		if client == nil {
-			utils.WriteError(w, http.StatusNotFound, "Client not found in room")
-			return
-		}
-
-		leftRoom, err := srv.LeaveRoom(hub, room, client)
-		if err != nil {
-			http.Error(w, "Some Error Occured", http.StatusInternalServerError)
-			return
-		}
-
-		utils.WriteJSON(w, http.StatusOK, leftRoom)
+		utils.WriteJSON(w, http.StatusOK, room)
 	}
 }
+
+// func HandleLeaveRoom(hub *pkg.Hub) http.HandlerFunc {
+// 	return func(w http.ResponseWriter, r *http.Request) {
+// 		room, err := utils.DecodeRoomRequest(r)
+// 		if err != nil {
+// 			utils.WriteError(w, http.StatusBadRequest, "Invalid payload")
+// 			return
+// 		}
+
+// 		err = room.ValidateLeaveRoom()
+// 		if err != nil {
+// 			http.Error(w, "Invalid request payload", http.StatusBadRequest)
+// 			return
+// 		}
+
+// 		client := hub.GetClientFromRoom(*room.RoomId, *room.ClientId)
+// 		if client == nil {
+// 			utils.WriteError(w, http.StatusNotFound, "Client not found in room")
+// 			return
+// 		}
+
+// 		leftRoom, err := srv.LeaveRoom(hub, room, client)
+// 		if err != nil {
+// 			http.Error(w, "Some Error Occured", http.StatusInternalServerError)
+// 			return
+// 		}
+
+// 		utils.WriteJSON(w, http.StatusOK, leftRoom)
+// 	}
+// }
 
 func HandleRoomStats(hub *pkg.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

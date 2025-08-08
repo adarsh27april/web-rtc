@@ -7,26 +7,28 @@ import (
 )
 
 /*
-Hub is Central Event Manager. Responsible for:
+Hub is the Central Event Manager. Responsible for:
 
-  - Managing active rooms and clients
+  - Managing active rooms and the clients inside them
+  - Relaying messages between clients in the same room
+  - Cleaning up connections when clients disconnect
+  - Acting as a message router using Go channels for concurrency safety
 
-  - Relaying messages between clients
-
-  - Cleaning up connections
-
-  - Acts as Message router. Communicates with the system through go channels
-
-Hub.Rooms is like:
+Hub.Rooms structure:
 
 	"roomId": {
-		"client1_ptr": true // all clients of a room are in map
-		"client2_ptr": true // for fast/ease access
-		"client3_ptr": true
+		"ClientId1": *Client, // reference to the connected client struct
+		"ClientId2": *Client, // each ClientId maps to its Client instance
+		"ClientId3": *Client
 	}
+
+Notes:
+  - A room is represented as a map of ClientId → *Client.
+  - Empty rooms are removed to free up memory.
+  - A Client may be pre-registered (with nil connection) via REST before WebSocket connects.
 */
 type Hub struct {
-	Rooms      map[string]map[*Client]bool
+	Rooms      map[string]map[string]*Client
 	Register   chan *Client
 	Unregister chan *Client
 	Broadcast  chan MessageEnvelope
@@ -35,20 +37,20 @@ type Hub struct {
 
 func NewHub() *Hub {
 	return &Hub{
-		Rooms:      make(map[string]map[*Client]bool),
+		Rooms:      make(map[string]map[string]*Client),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		Broadcast:  make(chan MessageEnvelope),
 	}
 }
 
-// it will traverse the Hub to get client ptr from clientId if it is present in roomId
-func (h *Hub) GetClientFromRoom(roomID, clientID string) *Client {
+// it will traverse the Hub to get client ptr from ClientId if it is present in roomId
+func (h *Hub) GetClientFromRoom(roomID, ClientId string) *Client {
 	h.Mu.RLock()
 	defer h.Mu.RUnlock()
-	for c := range h.Rooms[roomID] {
-		if c.ClientID == clientID {
-			return c
+	for cId := range h.Rooms[roomID] {
+		if cId == ClientId {
+			return h.Rooms[roomID][cId]
 		}
 	}
 	return nil
@@ -72,33 +74,39 @@ func (h *Hub) addClient(c *Client) {
 	defer h.Mu.Unlock()
 
 	if h.Rooms[c.RoomID] == nil {
-		h.Rooms[c.RoomID] = make(map[*Client]bool)
+		h.Rooms[c.RoomID] = make(map[string]*Client)
 	}
-	h.Rooms[c.RoomID][c] = true
-	fmt.Println(c.RoomID, c.ClientID, "✅ Joined room")
+	h.Rooms[c.RoomID][c.ClientId] = c
+	fmt.Println(c.RoomID, c.ClientId, "✅ Joined room")
 }
 
 func (h *Hub) removeClient(c *Client) {
 	h.Mu.Lock()
 	defer h.Mu.Unlock()
 
-	if _, ok := h.Rooms[c.RoomID][c]; ok {
-		delete(h.Rooms[c.RoomID], c)
+	if _, ok := h.Rooms[c.RoomID][c.ClientId]; ok {
+		delete(h.Rooms[c.RoomID], c.ClientId)
 		close(c.Send)
 	}
-	utils.LogRoom(c.RoomID, c.ClientID, "❌ Left room")
+
+	// Clean up room if empty
+	if len(h.Rooms[c.RoomID]) == 0 {
+		delete(h.Rooms, c.RoomID)
+	}
+
+	utils.LogRoom(c.RoomID, c.ClientId, "❌ Left room")
 }
 
 func (h *Hub) sendToRoom(msg MessageEnvelope) {
 	h.Mu.RLock()
 	defer h.Mu.RUnlock()
 
-	for c := range h.Rooms[msg.RoomID] {
+	for _, c := range h.Rooms[msg.RoomID] { // _ is ClientId
 		if c != msg.Sender {
 			c.Send <- msg.Data
 		}
 	}
-	utils.LogRoom(msg.RoomID, msg.Sender.ClientID, "📡 Relaying message to other clients in room")
+	utils.LogRoom(msg.RoomID, msg.Sender.ClientId, "📡 Relaying message to other clients in room")
 }
 
 // func (h *Hub) RegisterClient(c *Client) {

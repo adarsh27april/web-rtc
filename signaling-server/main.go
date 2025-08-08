@@ -22,6 +22,8 @@ func main() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/api/health", handlers.HandleHealthCheck("Signaling Server")).Methods("GET")
+
+	r.HandleFunc("/api/rooms/create", handlers.HandleCreateRoom(h)).Methods("POST")
 	r.HandleFunc("/api/rooms/join", handlers.HandleJoinRoom(h)).Methods("POST")
 	// r.HandleFunc("/api/rooms/leave", handlers.HandleLeaveRoom(h)).Methods("POST")
 	r.HandleFunc("/api/rooms/stats", handlers.HandleRoomStats(h)).Methods("GET")
