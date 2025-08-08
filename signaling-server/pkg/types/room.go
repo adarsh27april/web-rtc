@@ -4,7 +4,7 @@ import "fmt"
 
 type Room struct {
 	RoomId   *string `json:"roomId,omitempty"`
-	ClientId *string `json:"ClientId,omitempty"`
+	ClientId *string `json:"clientId,omitempty"`
 	Status   *string `json:"status,omitempty" validate:"oneof=joined left created"`
 }
 

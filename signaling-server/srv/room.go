@@ -11,7 +11,7 @@ import (
 // only client A can create a room
 func CreateRoom(hub *pkg.Hub) (types.Room, error) {
 	roomId := utils.GenerateShortID()
-	ClientId := utils.GenerateShortID()
+	clientId := utils.GenerateShortID()
 
 	hub.Mu.Lock()
 	defer hub.Mu.Unlock()
@@ -21,12 +21,14 @@ func CreateRoom(hub *pkg.Hub) (types.Room, error) {
 	}
 
 	// adding placeholder client until WS Connects
-	hub.Rooms[roomId][ClientId] = nil
+	hub.Rooms[roomId][clientId] = nil
 	// actual client object will be formed when WS connection is made to connect
+
+	utils.LogRoom(roomId, clientId, "room created placeholder client attached")
 
 	return types.Room{
 		RoomId:   &roomId,
-		ClientId: &ClientId,
+		ClientId: &clientId,
 		Status:   utils.Ptr("created"),
 	}, nil
 }
