@@ -1,4 +1,4 @@
-*_debug_*
+*debug*
 .vscode
 .env*
 node_modules

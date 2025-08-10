@@ -31,8 +31,8 @@ func main() {
 	r.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		srv.ServeWS(h, w, r)
 	}).Methods("GET")
-	// The server listens on PORT and handles all HTTP methods (GET, POST, PUT, etc.) at the '/ws' route.
-	// Any request to localhost:PORT/ws will trigger the callback function to establish a WebSocket connection.
+	// The '/ws' route listens for WebSocket upgrade requests over HTTP GET.
+	// Clients connect to this endpoint to establish a persistent WebSocket connection.
 
 	log.Println("Signaling server started on ", PORT)
 	log.Fatal(http.ListenAndServe(PORT, r))
