@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 
 	pkg "signaling-server-webrtc/pkg"
 	"signaling-server-webrtc/pkg/handlers"
@@ -34,6 +35,16 @@ func main() {
 	// The '/ws' route listens for WebSocket upgrade requests over HTTP GET.
 	// Clients connect to this endpoint to establish a persistent WebSocket connection.
 
+	// Configure CORS
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000"}, // Your frontend origin
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type"},
+		AllowCredentials: true,
+		Debug:            true, // Enable for debugging CORS issues
+	})
+	handler := c.Handler(r)
+
 	log.Println("Signaling server started on ", PORT)
-	log.Fatal(http.ListenAndServe(PORT, r))
+	log.Fatal(http.ListenAndServe(PORT, handler))
 }
