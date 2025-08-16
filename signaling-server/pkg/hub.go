@@ -88,13 +88,13 @@ func (h *Hub) removeClient(c *Client) {
 		delete(h.Rooms[c.RoomID], c.ClientId)
 		close(c.Send)
 	}
+	utils.LogRoom(c.RoomID, c.ClientId, "❌ Left room")
 
 	// Clean up room if empty
 	if len(h.Rooms[c.RoomID]) == 0 {
+		utils.LogRoom(c.RoomID, "Nil", "empty room! Deleting... 🗑️")
 		delete(h.Rooms, c.RoomID)
 	}
-
-	utils.LogRoom(c.RoomID, c.ClientId, "❌ Left room")
 }
 
 func (h *Hub) sendToRoom(msg MessageEnvelope) {
