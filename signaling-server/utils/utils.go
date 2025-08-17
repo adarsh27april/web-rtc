@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	mrand "math/rand"
+	"os"
 )
 
 const base62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -32,4 +33,12 @@ func GenerateShortID(lengths ...int) string {
 
 func Ptr[T any](t T) *T {
 	return &t
+}
+
+// GetEnv gets environment variable with default value
+func GetEnv(name string) string {
+	if value := os.Getenv(name); value != "" {
+		return value
+	}
+	return ""
 }

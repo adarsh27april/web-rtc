@@ -1,6 +1,8 @@
 package pkg
 
 import (
+	"fmt"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -20,8 +22,8 @@ type MessageEnvelope struct {
 
 func (c *Client) ReadPump(hub *Hub) {
 	// this go routine func should run endlessly
-	// this will only be called if the code breaks due to error
 	defer func() {
+		// this defer func will only be called if the code breaks due to error
 		hub.Unregister <- c // sending c to channel Unregister
 		c.Connection.Close()
 	}()
@@ -46,6 +48,7 @@ func (c *Client) WritePump() {
 	// here Send is a channel so if it ends then the loop will wait for new value to appear here.
 	// if the channle is closed then only the loop ends.
 	for message := range c.Send {
+		fmt.Println("new message: ", string(message))
 		err := c.Connection.WriteMessage(websocket.TextMessage, message)
 		if err != nil {
 			break // Write failed (disconnected or closed)

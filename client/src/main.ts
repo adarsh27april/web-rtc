@@ -23,6 +23,6 @@ document.getElementById("join-room")?.addEventListener("click", async () => {
 
 document.getElementById("sendMsg")?.addEventListener("click", async () => {
   const msg = (document.getElementById("messageInput") as HTMLInputElement).value.trim()
-  if (msg) rtc.sendMessage(msg)
+  if (msg) rtc.sendWebRTCmessage(msg)
   else alert("empty message, cannot send")
 })

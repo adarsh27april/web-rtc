@@ -1,8 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
@@ -10,13 +15,11 @@ import (
 	pkg "signaling-server-webrtc/pkg"
 	"signaling-server-webrtc/pkg/handlers"
 	"signaling-server-webrtc/srv"
+	"signaling-server-webrtc/utils"
 )
 
-const PORT = ":1337"
-
 func main() {
-	// this hub renotes a room where lients will be added and removed by using go routines.
-
+	// this hub denotes a room where clients will be added and removed by using go routines.
 	h := pkg.NewHub() // this will create 3 new channels for register, unregister, broadcast
 	go h.Run()        // this is going to run concurrently and listen to all the data made available in that channel
 
@@ -45,6 +48,30 @@ func main() {
 	})
 	handler := c.Handler(r)
 
-	log.Println("Signaling server started on ", PORT)
-	log.Fatal(http.ListenAndServe(PORT, handler))
+	// handling server start and shutdown
+	server := &http.Server{
+		Addr:    ":" + utils.GetEnv("PORT"),
+		Handler: handler,
+	}
+
+	go func() {
+		log.Printf("Signaling server started, PORT%v\n", server.Addr)
+		err := server.ListenAndServe()
+
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	<-quit
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
+	}
 }

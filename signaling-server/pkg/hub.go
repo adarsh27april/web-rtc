@@ -108,15 +108,3 @@ func (h *Hub) sendToRoom(msg MessageEnvelope) {
 	}
 	utils.LogRoom(msg.RoomID, msg.Sender.ClientId, "📡 Relaying message to other clients in room")
 }
-
-// func (h *Hub) RegisterClient(c *Client) {
-// 	h.Register <- c
-// }
-
-// func (h *Hub) UnregisterClient(c *Client) {
-// 	h.Unregister <- c
-// }
-
-// func (h *Hub) BroadcastToClient(msg MessageEnvelope) {
-// 	h.Broadcast <- msg
-// }

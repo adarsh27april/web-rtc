@@ -89,7 +89,7 @@ export class WebRtcConnection {
       this.dataChannel!.onmessage = (e) => this.log("📩 Received:", e.data)
    }
 
-   public sendMessage(msg: string) {
+   public sendWebRTCmessage(msg: string) {
       if (this.dataChannel?.readyState === "open") {
          this.dataChannel.send(msg)
       }
