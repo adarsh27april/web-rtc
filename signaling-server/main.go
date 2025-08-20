@@ -12,7 +12,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 
-	pkg "signaling-server-webrtc/pkg"
+	"signaling-server-webrtc/pkg"
 	"signaling-server-webrtc/pkg/handlers"
 	"signaling-server-webrtc/srv"
 	"signaling-server-webrtc/utils"
@@ -49,29 +49,32 @@ func main() {
 	handler := c.Handler(r)
 
 	// handling server start and shutdown
-	server := &http.Server{
-		Addr:    ":" + utils.GetEnv("PORT"),
-		Handler: handler,
-	}
-
-	go func() {
-		log.Printf("Signaling server started, PORT%v\n", server.Addr)
-		err := server.ListenAndServe()
-
-		if err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
+	var server *http.Server
+	{
+		server = &http.Server{
+			Addr:    ":" + utils.GetEnv("PORT"),
+			Handler: handler,
 		}
-	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-	<-quit
-	log.Println("Shutting down server...")
+		go func() {
+			log.Printf("Signaling server started, PORT%v\n", server.Addr)
+			err := server.ListenAndServe()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+			if err != nil && err != http.ErrServerClosed {
+				log.Fatalf("listen: %s\n", err)
+			}
+		}()
 
-	if err := server.Shutdown(ctx); err != nil {
-		log.Fatal("Server forced to shutdown:", err)
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+		<-quit
+		log.Println("Shutting down server...")
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := server.Shutdown(ctx); err != nil {
+			log.Fatal("Server forced to shutdown:", err)
+		}
 	}
 }

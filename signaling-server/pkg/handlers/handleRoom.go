@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	pkg "signaling-server-webrtc/pkg"
+	"signaling-server-webrtc/pkg"
 	"signaling-server-webrtc/srv"
 	"signaling-server-webrtc/utils"
 )
@@ -80,9 +80,9 @@ func HandleRoomStats(hub *pkg.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		roomId := r.URL.Query().Get("roomId")
 		if roomId == "" {
-			utils.WriteJSON(w, http.StatusOK, srv.HubStats(hub))
+			utils.WriteJSON(w, http.StatusOK, hub.HubStats())
 			return
 		}
-		utils.WriteJSON(w, http.StatusOK, srv.RoomStats(hub, roomId))
+		utils.WriteJSON(w, http.StatusOK, hub.RoomStats(roomId))
 	}
 }

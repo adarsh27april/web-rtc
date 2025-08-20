@@ -4,7 +4,7 @@ export class WebRtcConnection {
    private peerConn: RTCPeerConnection;
    private dataChannel: RTCDataChannel | null = null
    private ws: WebSocket | null = null
-   private isOfferer: boolean = false
+   // private isOfferer: boolean = false
 
    constructor(apiBase: string, wsBase: string) {
       this.peerConn = new RTCPeerConnection()
@@ -15,7 +15,6 @@ export class WebRtcConnection {
    public async createRoom() {
       const res = await fetch(`${this.apiBase}/api/rooms/create`, { method: "POST" })
       const data: { roomId: string, clientId: string } = await res.json()
-      this.isOfferer = true
       this.connectWebSocket(data.roomId, data.clientId)
       return data
    }
@@ -23,7 +22,6 @@ export class WebRtcConnection {
    public async joinRoom(roomId: string) {
       const res = await fetch(`${this.apiBase}/api/rooms/join?roomId=${roomId}`, { method: "POST" })
       const data: { roomId: string, clientId: string } = await res.json()
-      this.isOfferer = false
       this.connectWebSocket(data.roomId, data.clientId)
       return data
    }
@@ -58,29 +56,59 @@ export class WebRtcConnection {
          this.setupDataChannel()
       }
 
-      if (this.isOfferer) {
-         this.dataChannel = this.peerConn.createDataChannel("chat")
-         this.setupDataChannel()
-
-         this.peerConn.createOffer().then((offer) => {
-            this.peerConn.setLocalDescription(offer)
-            this.sendSignalToWS("offer", offer)
-         })
-      }
    }
 
    private handleSignalingMessage(msg: any) {
-      if (msg.type === "offer") {
-         this.peerConn.setRemoteDescription(new RTCSessionDescription(msg.data))
+      switch (msg.type) {
+         case "role":
+            {
+               if (msg.data?.role === "offerer") {
+                  // this.isOfferer = true;
 
-         this.peerConn.createAnswer().then((answer) => {
-            this.peerConn.setLocalDescription(answer)
-            this.sendSignalToWS("answer", answer)
-         })
-      } else if (msg.type === "answer") {
-         this.peerConn.setRemoteDescription(msg.data)
-      } else if (msg.type === "candidate") {
-         this.peerConn.addIceCandidate(new RTCIceCandidate(msg.data))
+                  // since from signaling server we are told that this is offerer, hence creating the offer.
+                  this.dataChannel = this.peerConn.createDataChannel("chat");
+                  this.setupDataChannel()
+                  this.peerConn.createOffer().then((offer) => {
+                     this.peerConn.setLocalDescription(offer)
+                     this.sendSignalToWS("offer", offer)
+                  })
+               } //else if (msg.data?.role === "answerer") {
+               //    this.isOfferer = false;
+               // }
+            }
+            break;
+
+         case "offer":
+            {
+               this.peerConn.setRemoteDescription(new RTCSessionDescription(msg.data))
+
+               this.peerConn.createAnswer().then((answer) => {
+                  this.peerConn.setLocalDescription(answer)
+                  this.sendSignalToWS("answer", answer)
+               })
+            }
+            break;
+
+         case "answer":
+            {
+               this.peerConn.setRemoteDescription(msg.data)
+            }
+            break;
+
+         case "candidate":
+            {
+               this.peerConn.addIceCandidate(new RTCIceCandidate(msg.data))
+            }
+            break;
+         
+         case "timeout":
+            {
+               this.log("⏳ No peer joined within", msg.data?.afterSec, "seconds");
+            }
+            break;
+
+         default:
+            break;
       }
    }
 

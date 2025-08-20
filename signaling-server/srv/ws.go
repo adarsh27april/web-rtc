@@ -3,9 +3,11 @@ package srv
 import (
 	"log"
 	"net/http"
-	pkg "signaling-server-webrtc/pkg"
+	"time"
 
 	"github.com/gorilla/websocket"
+
+	"signaling-server-webrtc/pkg"
 )
 
 var upgrader = websocket.Upgrader{
@@ -49,4 +51,16 @@ func ServeWS(hub *pkg.Hub, w http.ResponseWriter, r *http.Request) {
 	// these are Per-client goroutines
 	go client.WritePump()
 	go client.ReadPump(hub)
+
+	// notify first peer if nobody joins in time
+	const WAIT_TIME = 2 * time.Minute
+	go func(roomID, clientID string, c *pkg.Client) {
+		time.Sleep(WAIT_TIME)
+
+		stats := hub.RoomStats(roomID)
+		if len(stats.Clients) < 2 {
+			// non-fatal: just inform; your UI can show a toast/option to keep waiting
+			c.Send <- []byte(`{"type":"timeout","data":{"reason":"no-peer-joined","afterSec":60}}`)
+		}
+	}(roomID, clientId, client)
 }

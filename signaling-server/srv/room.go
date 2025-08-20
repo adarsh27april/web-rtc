@@ -3,7 +3,7 @@ package srv
 import (
 	"fmt"
 
-	pkg "signaling-server-webrtc/pkg"
+	"signaling-server-webrtc/pkg"
 	"signaling-server-webrtc/pkg/types"
 	"signaling-server-webrtc/utils"
 )
@@ -90,38 +90,3 @@ This will be deleted. The leave room will be called in websocket connection only
 
 // 	return res, nil
 // }
-
-func HubStats(hub *pkg.Hub) types.HubStats {
-	hub.Mu.RLock()
-	defer hub.Mu.RUnlock()
-
-	stats := types.HubStats{}
-	for roomID, clientsMap := range hub.Rooms {
-		roomStats := types.RoomStats{
-			RoomID: roomID,
-		}
-		for clientId := range clientsMap {
-			roomStats.Clients = append(roomStats.Clients, clientId)
-		}
-
-		stats.Rooms = append(stats.Rooms, roomStats)
-	}
-	stats.TotalRooms = len(stats.Rooms)
-
-	return stats
-}
-
-func RoomStats(hub *pkg.Hub, roomId string) types.RoomStats {
-	hub.Mu.RLock()
-	defer hub.Mu.RUnlock()
-
-	roomData := hub.Rooms[roomId]
-	roomStats := types.RoomStats{
-		RoomID: roomId,
-	}
-	for clientIds := range roomData {
-		roomStats.Clients = append(roomStats.Clients, clientIds)
-	}
-
-	return roomStats
-}

@@ -2,8 +2,11 @@ package pkg
 
 import (
 	"fmt"
-	"signaling-server-webrtc/utils"
+	"sort"
 	"sync"
+
+	"signaling-server-webrtc/pkg/types"
+	"signaling-server-webrtc/utils"
 )
 
 /*
@@ -16,10 +19,13 @@ Hub is the Central Event Manager. Responsible for:
 
 Hub.Rooms structure:
 
-	"roomId": {
-		"ClientId1": *Client, // reference to the connected client struct
-		"ClientId2": *Client, // each ClientId maps to its Client instance
-		"ClientId3": *Client
+	{
+		"roomId1": {
+			"ClientId1": *Client, // ref. to the connected client struct
+			"ClientId2": *Client, // each ClientId maps to its Client instance
+			"ClientId3": *Client
+		}
+		...
 	}
 
 Notes:
@@ -61,6 +67,7 @@ func (h *Hub) Run() {
 		select {
 		case c := <-h.Register: // get value(client) from Register channel
 			h.addClient(c) // add client to the hub
+			h.assignClientRole(c.RoomID)
 		case c := <-h.Unregister: // get value from Unregister channel
 			h.removeClient(c) // remove client from the hub
 		case msg := <-h.Broadcast: // get value from Broadcast channel
@@ -107,4 +114,60 @@ func (h *Hub) sendToRoom(msg MessageEnvelope) {
 		}
 	}
 	utils.LogRoom(msg.RoomID, msg.Sender.ClientId, "📡 Relaying message to other clients in room")
+}
+
+func (h *Hub) assignClientRole(roomId string) {
+	stats := h.RoomStats(roomId)
+	if len(stats.Clients) == 2 {
+		cIds := stats.Clients
+		sort.Strings(cIds)
+		offererClient, answererClient := cIds[0], cIds[1]
+
+		h.Mu.RLock()
+		defer h.Mu.RUnlock()
+		for clientId, clientPtr := range h.Rooms[roomId] {
+
+			switch clientId {
+			case offererClient:
+				clientPtr.Send <- []byte(`{"type":"role","data":{"role":"offerer"}}`)
+			case answererClient:
+				clientPtr.Send <- []byte(`{"type":"role","data":{"role":"answerer"}}`)
+			}
+		}
+	}
+}
+
+func (hub *Hub) HubStats() types.HubStats {
+	hub.Mu.RLock()
+	defer hub.Mu.RUnlock()
+
+	stats := types.HubStats{}
+	for roomID, clientsMap := range hub.Rooms {
+		roomStats := types.RoomStats{
+			RoomID: roomID,
+		}
+		for clientId := range clientsMap {
+			roomStats.Clients = append(roomStats.Clients, clientId)
+		}
+
+		stats.Rooms = append(stats.Rooms, roomStats)
+	}
+	stats.TotalRooms = len(stats.Rooms)
+
+	return stats
+}
+
+func (hub *Hub) RoomStats(roomId string) types.RoomStats {
+	hub.Mu.RLock()
+	defer hub.Mu.RUnlock()
+
+	roomData := hub.Rooms[roomId]
+	roomStats := types.RoomStats{
+		RoomID: roomId,
+	}
+	for clientIds := range roomData {
+		roomStats.Clients = append(roomStats.Clients, clientIds)
+	}
+
+	return roomStats
 }
