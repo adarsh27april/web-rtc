@@ -2,12 +2,14 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration - Make these easily configurable
-const PROJECT_DIR = './client'; // Change this to extract from any project folder
-const OUTPUT_FILE = './extracted-code-js.md'; // Generic output filename
-const FILE_EXTENSIONS = ['.go', '.js', '.json', '.html']; // Add/remove extensions as needed
+const PROJECT_DIR = './signaling-server'; // Change this to extract from any project folder
+const OUTPUT_FILE = './extracted-code-go.md'; // Generic output filename
+const FILE_EXTENSIONS = ['.go', '.js', '.json','.ts', '.html']; // Add/remove extensions as needed
 const EXCLUDE_PATTERNS = [ // Patterns to exclude (files and folders)
-    '*_debug_*', 'debug', 'node_modules', '.git', 
-    'client/client.go', 'hub/hub.go', 'utils/message.go']; 
+    '*_debug_*', 'debug', 'node_modules', '.git',
+    'client/client.go', 'hub/hub.go', 'utils/message.go',
+    'package-lock.json', 'package.json'
+];
 const INCLUDE_HIDDEN_FILES = false; // Set to true to include files starting with '.'
 
 // Function to check if a name or path matches any excluded patterns
