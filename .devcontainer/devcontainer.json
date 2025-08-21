@@ -1,0 +1,30 @@
+// .devcontainer/devcontainer.json
+{
+  "name": "My Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+
+  // Add languages
+  "features": {
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.22"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+
+  // Auto-install VS Code extensions
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "ms-vscode.vscode-typescript-next",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "workbench.colorTheme": "Default Dark+"   // Dark Plus theme
+      }
+    }
+  }
+}
