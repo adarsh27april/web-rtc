@@ -19,12 +19,15 @@
       "extensions": [
         "golang.go",
         "ms-vscode.vscode-typescript-next",
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode"
+        "vscode-icons-team.vscode-icons"
       ],
       "settings": {
-        "workbench.colorTheme": "Default Dark+"   // Dark Plus theme
+        "workbench.colorTheme": "Default Dark+",
+        "workbench.iconTheme": "vscode-icons",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": null
       }
     }
-  }
+  },
+  "postCreateCommand": "apt-get update && apt-get install -y git-lfs && git lfs install"
 }
