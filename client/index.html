@@ -12,24 +12,18 @@
 <body>
    <div class="container">
       <div class="header">
-         <div></div> <!-- Spacer for center alignment -->
          <h2>🔐 Secure WebRTC Manual Test</h2>
          <button class="theme-toggle" aria-label="Toggle dark/light theme">
             <span class="icon" id="themeIcon">🌙</span>
          </button>
       </div>
 
-      <!-- <h2 id="role">🕵️ Determining role...</h2> -->
+      <p><b>Steps:</b> Open this in 2 tabs or devices. One creates the Room with RoomId and other sets its RoomId.</p>
 
-      <p><b>Steps:</b> Open this in 2 tabs or devices. One selects "Yes" to be Peer A (Offerer), the other is Peer B
-         (Answerer).</p>
-
-      <!-- <div class="button-group" > -->
       <input type="text" id="roomId" placeholder="Room ID">
       <button class="btn-secondary" id="join-room" aria-label="Set remote description">
          Set Room Id
       </button>
-      <!-- </div> -->
 
       <button class="btn-secondary" id="create-room" aria-label="Set remote description">
          Create New Room
@@ -41,14 +35,6 @@
             Send Message
          </button>
       </div>
-
-
-      <div class="row">
-         <textarea id="message-area" placeholder="Messages will appear here" readonly></textarea>
-      </div>
-
-      <!-- <textarea id="sdpOutput" rows="6" readonly placeholder="SDP will appear here..."
-         aria-label="SDP output display"></textarea> -->
 
       <div id="log" aria-label="Application logs"></div>
    </div>

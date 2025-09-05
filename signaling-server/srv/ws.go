@@ -1,6 +1,7 @@
 package srv
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -53,14 +54,29 @@ func ServeWS(hub *pkg.Hub, w http.ResponseWriter, r *http.Request) {
 	go client.ReadPump(hub)
 
 	// notify first peer if nobody joins in time
-	const WAIT_TIME = 2 * time.Minute
+	const WAIT_TIME = 1 * time.Minute
 	go func(roomID, clientID string, c *pkg.Client) {
 		time.Sleep(WAIT_TIME)
 
+		clientPtr := hub.GetClientFromRoom(roomID, clientID)
+		if clientPtr == nil {
+			log.Printf("[Room:%s] [Client:%s] Client no longer exists, skipping timeout", roomID, clientID)
+			return
+		}
+
 		stats := hub.RoomStats(roomID)
 		if len(stats.Clients) < 2 {
-			// non-fatal: just inform; your UI can show a toast/option to keep waiting
-			c.Send <- []byte(`{"type":"timeout","data":{"reason":"no-peer-joined","afterSec":60}}`)
+			timeOutMsg := []byte(fmt.Sprintf(`{
+				"type":"timeout", 
+				"message": "no peer joined in %d seconds"
+			}`, int(WAIT_TIME.Seconds())))
+
+			select {
+			case c.Send <- timeOutMsg:
+				log.Printf("[Room:%s] [Client:%s] No peer joined in time, notifying client", roomID, clientID)
+			default:
+				log.Printf("[Room:%s] [Client:%s] Cannot send timeout - channel unavailable", roomID, clientID)
+			}
 		}
 	}(roomID, clientId, client)
 }

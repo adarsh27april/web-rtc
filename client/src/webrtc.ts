@@ -7,7 +7,11 @@ export class WebRtcConnection {
    // private isOfferer: boolean = false
 
    constructor(apiBase: string, wsBase: string) {
-      this.peerConn = new RTCPeerConnection()
+      this.peerConn = new RTCPeerConnection({
+         iceServers:[
+            {urls:"stun:stun.l.google.com:19302"} // free public STUN
+         ]
+      })
       this.apiBase = apiBase
       this.wsBase = wsBase
    }
@@ -63,18 +67,13 @@ export class WebRtcConnection {
          case "role":
             {
                if (msg.data?.role === "offerer") {
-                  // this.isOfferer = true;
-
-                  // since from signaling server we are told that this is offerer, hence creating the offer.
                   this.dataChannel = this.peerConn.createDataChannel("chat");
                   this.setupDataChannel()
                   this.peerConn.createOffer().then((offer) => {
                      this.peerConn.setLocalDescription(offer)
                      this.sendSignalToWS("offer", offer)
                   })
-               } //else if (msg.data?.role === "answerer") {
-               //    this.isOfferer = false;
-               // }
+               }
             }
             break;
 
@@ -103,7 +102,7 @@ export class WebRtcConnection {
          
          case "timeout":
             {
-               this.log("⏳ No peer joined within", msg.data?.afterSec, "seconds");
+               this.log("❌", msg.message);
             }
             break;
 
