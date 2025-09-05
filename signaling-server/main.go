@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,6 +18,11 @@ import (
 	"signaling-server-webrtc/srv"
 	"signaling-server-webrtc/utils"
 )
+
+func init() {
+	// Seed the math/rand package with the current time
+	rand.Seed(time.Now().UnixNano())
+}
 
 func main() {
 	// this hub denotes a room where clients will be added and removed by using go routines.
@@ -40,7 +46,13 @@ func main() {
 
 	// Configure CORS
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173", "http://localhost:3000", "http://localhost:4173"}, // Your frontend origin
+		AllowedOrigins: []string{
+			"http://localhost:5173",
+			"http://localhost:4173",
+			"https://192.168.110.220:5173",
+			"https://192.168.110.134:5173",
+		}, // Your frontend origin
+
 		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization", "Accept"},
 		AllowCredentials: true,
@@ -57,8 +69,13 @@ func main() {
 		}
 
 		go func() {
-			log.Printf("Signaling server started, PORT%v\n", server.Addr)
-			err := server.ListenAndServe()
+			log.Printf("Signaling server started, PORT: %v\n", server.Addr)
+
+			// for prod
+			// err := server.ListenAndServe()
+
+			// for local
+			err := server.ListenAndServeTLS("cert.pem", "key.pem")
 
 			if err != nil && err != http.ErrServerClosed {
 				log.Fatalf("listen: %s\n", err)

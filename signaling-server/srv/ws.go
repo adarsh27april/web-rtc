@@ -27,11 +27,13 @@ func ServeWS(hub *pkg.Hub, w http.ResponseWriter, r *http.Request) {
 	}
 
 	hub.Mu.RLock()
-	_, exist := hub.Rooms[roomID][clientId]
+	room, roomExists := hub.Rooms[roomID]
+	_, clientExistsInRoom := room[clientId]
 	hub.Mu.RUnlock()
 
-	if !exist {
-		http.Error(w, "Unauthorized Client", http.StatusBadRequest)
+	if !roomExists || !clientExistsInRoom {
+		http.Error(w, "Unauthorized: Invalid room or client ID", http.StatusUnauthorized)
+		return
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -55,12 +57,12 @@ func ServeWS(hub *pkg.Hub, w http.ResponseWriter, r *http.Request) {
 
 	// notify first peer if nobody joins in time
 	const WAIT_TIME = 1 * time.Minute
-	go func(roomID, clientID string, c *pkg.Client) {
+	go func(roomID, clientId string) {
 		time.Sleep(WAIT_TIME)
 
-		clientPtr := hub.GetClientFromRoom(roomID, clientID)
+		clientPtr := hub.GetClientFromRoom(roomID, clientId)
 		if clientPtr == nil {
-			log.Printf("[Room:%s] [Client:%s] Client no longer exists, skipping timeout", roomID, clientID)
+			log.Printf("[Room:%s] [Client:%s] Client no longer exists, skipping timeout", roomID, clientId)
 			return
 		}
 
@@ -72,11 +74,11 @@ func ServeWS(hub *pkg.Hub, w http.ResponseWriter, r *http.Request) {
 			}`, int(WAIT_TIME.Seconds())))
 
 			select {
-			case c.Send <- timeOutMsg:
-				log.Printf("[Room:%s] [Client:%s] No peer joined in time, notifying client", roomID, clientID)
+			case clientPtr.Send <- timeOutMsg:
+				log.Printf("[Room:%s] [Client:%s] No peer joined in time, notifying client", roomID, clientId)
 			default:
-				log.Printf("[Room:%s] [Client:%s] Cannot send timeout - channel unavailable", roomID, clientID)
+				log.Printf("[Room:%s] [Client:%s] Cannot send timeout - channel unavailable", roomID, clientId)
 			}
 		}
-	}(roomID, clientId, client)
+	}(roomID, clientId)
 }

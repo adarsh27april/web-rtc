@@ -51,12 +51,13 @@ func NewHub() *Hub {
 }
 
 // it will traverse the Hub to get client ptr from ClientId if it is present in roomId
-func (h *Hub) GetClientFromRoom(roomID, ClientId string) *Client {
+func (h *Hub) GetClientFromRoom(roomID, clientId string) *Client {
 	h.Mu.RLock()
 	defer h.Mu.RUnlock()
-	for cId := range h.Rooms[roomID] {
-		if cId == ClientId {
-			return h.Rooms[roomID][cId]
+
+	if room, ok := h.Rooms[roomID]; ok {
+		if client, ok := room[clientId]; ok {
+			return client
 		}
 	}
 	return nil

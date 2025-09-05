@@ -24,7 +24,12 @@ func HandleHealthCheck(serviceName string) http.HandlerFunc {
 
 func HandleCreateRoom(hub *pkg.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		room, _ := srv.CreateRoom(hub)
+		room, err := srv.CreateRoom(hub)
+
+		if err != nil {
+			utils.WriteError(w, http.StatusInternalServerError, "could not create room")
+			return
+		}
 
 		utils.WriteJSON(w, http.StatusOK, room)
 	}
