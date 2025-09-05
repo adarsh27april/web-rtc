@@ -5,7 +5,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initUI()
 });
 
-const rtc = new WebRtcConnection("http://localhost:1337", "ws://localhost:1337");
+const apiBase = import.meta.env.VITE_API_BASE_URL;
+const wsBase = import.meta.env.VITE_WS_BASE_URL;
+
+const rtc = new WebRtcConnection(apiBase, wsBase);
 
 document.getElementById("create-room")?.addEventListener("click", async () => {
   const data = await rtc.createRoom()
