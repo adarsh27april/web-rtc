@@ -7,7 +7,7 @@ export default defineConfig({
     outDir: 'dist',
   },
   // base path for preview server
-  base: './',
+  base: '/web-rtc/',
   // You might also need to explicitly list the public directory
   // if you're having issues with manifest.json.
   publicDir: 'public',
