@@ -1,3 +1,31 @@
+interface RoleMessage {
+   type: 'role';
+   data: { role: 'offerer' | 'answerer' };
+}
+
+interface OfferMessage {
+   type: 'offer';
+   data: RTCSessionDescriptionInit;
+}
+
+interface AnswerMessage {
+   type: 'answer';
+   data: RTCSessionDescriptionInit;
+}
+
+interface CandidateMessage {
+   type: 'candidate';
+   data: RTCIceCandidateInit;
+}
+
+interface TimeoutMessage {
+   type: 'timeout';
+   message: string;
+}
+
+type SignalingMessage = RoleMessage | OfferMessage | AnswerMessage | CandidateMessage | TimeoutMessage;
+
+
 export class WebRtcConnection {
    private apiBase: string
    private wsBase: string
@@ -8,8 +36,8 @@ export class WebRtcConnection {
 
    constructor(apiBase: string, wsBase: string) {
       this.peerConn = new RTCPeerConnection({
-         iceServers:[
-            {urls:"stun:stun.l.google.com:19302"} // free public STUN
+         iceServers: [
+            { urls: "stun:stun.l.google.com:19302" } // free public STUN
          ]
       })
       this.apiBase = apiBase
@@ -44,14 +72,14 @@ export class WebRtcConnection {
       }
    }
 
-   private sendSignalToWS(type: string, data: any) {
-      this.ws?.send(JSON.stringify({ type, data }))
+   private sendSignalToWS(message:SignalingMessage) {
+      this.ws?.send(JSON.stringify(message))
    }
 
    private initWebRtc() {
       this.peerConn.onicecandidate = (e) => {
          if (e.candidate) {
-            this.sendSignalToWS("candidate", e.candidate)
+            this.sendSignalToWS({ type: "candidate", data: e.candidate })
          }
       }
 
@@ -62,7 +90,7 @@ export class WebRtcConnection {
 
    }
 
-   private handleSignalingMessage(msg: any) {
+   private handleSignalingMessage(msg: SignalingMessage) {
       switch (msg.type) {
          case "role":
             {
@@ -71,7 +99,7 @@ export class WebRtcConnection {
                   this.setupDataChannel()
                   this.peerConn.createOffer().then((offer) => {
                      this.peerConn.setLocalDescription(offer)
-                     this.sendSignalToWS("offer", offer)
+                     this.sendSignalToWS({ type: "offer", data: offer })
                   })
                }
             }
@@ -83,7 +111,7 @@ export class WebRtcConnection {
 
                this.peerConn.createAnswer().then((answer) => {
                   this.peerConn.setLocalDescription(answer)
-                  this.sendSignalToWS("answer", answer)
+                  this.sendSignalToWS({ type: "answer", data: answer })
                })
             }
             break;
@@ -99,7 +127,7 @@ export class WebRtcConnection {
                this.peerConn.addIceCandidate(new RTCIceCandidate(msg.data))
             }
             break;
-         
+
          case "timeout":
             {
                this.log("❌", msg.message);
@@ -124,7 +152,17 @@ export class WebRtcConnection {
 
    public log(...args: any[]) {
       const logEl = document.getElementById("log") as HTMLDivElement;
-      if (logEl) logEl.textContent += args.join(" ") + "\n";
+      if (!logEl) return;
+      // if (logEl) logEl.textContent += args.join(" ") + "\n";
+
+      const newLogEntry = document.createElement("div");
+      newLogEntry.className = "log-entry"; // Optional: for styling
+      newLogEntry.textContent = args.join(" ");
+
+      logEl.appendChild(newLogEntry);
+
+      // Optional: Auto-scroll to the bottom
+      logEl.scrollTop = logEl.scrollHeight;
    }
 }
 
