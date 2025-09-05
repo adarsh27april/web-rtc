@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+   <title>Secure WebRTC Manual Test</title>
+   <link rel="stylesheet" href="/web-rtc/index.css">
+   <link rel="manifest" href="/web-rtc/manifest.json">
+  <script type="module" crossorigin src="/web-rtc/assets/index-Bz1DNN-V.js"></script>
+</head>
+
+<body>
+   <div class="container">
+      <div class="header">
+         <h2>🔐 Secure WebRTC Manual Test</h2>
+         <button class="theme-toggle" aria-label="Toggle dark/light theme">
+            <span class="icon" id="themeIcon">🌙</span>
+         </button>
+      </div>
+
+      <p><b>Steps:</b> Open this in 2 tabs or devices. One creates the Room with RoomId and other sets its RoomId.</p>
+
+      <input type="text" id="roomId" placeholder="Room ID">
+      <button class="btn-secondary" id="join-room" aria-label="Set remote description">
+         Set Room Id
+      </button>
+
+      <button class="btn-secondary" id="create-room" aria-label="Set remote description">
+         Create New Room
+      </button>
+
+      <div class="row">
+         <input type="text" id="messageInput" placeholder="type message to send">
+         <button class="btn-secondary" id="sendMsg" aria-label="Set remote description">
+            Send Message
+         </button>
+      </div>
+
+      <div id="log" aria-label="Application logs"></div>
+   </div>
+
+</body>
+
+</html>

@@ -1,0 +1,30 @@
+{
+  "name": "Secure WebRTC Manual Test",
+  "short_name": "WebRTC Test",
+  "description": "A secure WebRTC manual test app for peer-to-peer connections.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#181c20",
+  "theme_color": "#2196F3",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "scope": "/",
+  "categories": [
+    "communication",
+    "utilities",
+    "testing"
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}
