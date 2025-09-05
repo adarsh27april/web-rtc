@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -45,14 +46,16 @@ func main() {
 	// Clients connect to this endpoint to establish a persistent WebSocket connection.
 
 	// Configure CORS
-	c := cors.New(cors.Options{
-		AllowedOrigins: []string{
-			"http://localhost:5173",
-			"http://localhost:4173",
-			"https://192.168.110.220:5173",
-			"https://192.168.110.134:5173",
-		}, // Your frontend origin
+	var allowedOrigins []string
+	originsStr := os.Getenv("CORS_ALLOWED_ORIGINS")
 
+	if originsStr == "" {
+		log.Fatalf("FATAL: 'CORS_ALLOWED_ORIGINS' environment variable not set")
+	} else {
+		allowedOrigins = strings.Split(originsStr, ",")
+	}
+	c := cors.New(cors.Options{
+		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization", "Accept"},
 		AllowCredentials: true,
@@ -63,22 +66,32 @@ func main() {
 	// handling server start and shutdown
 	var server *http.Server
 	{
+		port := utils.GetEnv("PORT")
+		if port == "" {
+			port = "1337" // Default for local
+		}
 		server = &http.Server{
-			Addr:    ":" + utils.GetEnv("PORT"),
+			Addr:    ":" + port,
 			Handler: handler,
 		}
 
 		go func() {
 			log.Printf("Signaling server started, PORT: %v\n", server.Addr)
 
-			// for prod
-			// err := server.ListenAndServe()
+			var err error
+			switch utils.GetEnv("ENV") {
+			case "local":
+				err = server.ListenAndServeTLS("cert.pem", "key.pem")
 
-			// for local
-			err := server.ListenAndServeTLS("cert.pem", "key.pem")
+			case "prod":
+				err = server.ListenAndServe()
+
+			default:
+				log.Fatalf("FATAL: 'ENV' environment variable not set or invalid. Must be 'local' or 'prod'.")
+			}
 
 			if err != nil && err != http.ErrServerClosed {
-				log.Fatalf("listen: %s\n", err)
+				log.Fatalf("Server failed to start or unexpectedly closed: %s\n", err)
 			}
 		}()
 
